@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 const validator = require('validator');
-const jtw = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
+//We cannt add methods to model until we define a schema for model
 var UserSchema = new mongoose.Schema({
-
     email:{
       type:String,
       required : true,
@@ -36,16 +36,38 @@ var UserSchema = new mongoose.Schema({
 });
 //Arrow function cannot bind a this keyword
 UserSchema.methods.generateAuthToken = function(){
+
   var user = this;
   var access = 'auth';
+
   var token = jwt.sign({_id: user._id.toHexString(),access},'abc123').toString();
-  user.tokens.push({
-    access:access,
-    token:token
+
+  // user.tokens.push({access,token});
+  User.findOneAndUpdate({email:user.email},{$push: {tokens:{access,token}}},{new:true},function (err, user) {
+    if(err) console.log("Something wrong when updating data");
+    console.log(user);
   });
-  user.save().then(()=>{
+
+  return user.save().then(()=>{
     return token;
   });
+};
+
+UserSchema.statics.findByToken = function(token){
+  var User = this;
+  var decoded;
+  try{
+    decoded = jwt.verify(token,'abc123');
+  }catch(e){
+    return new Promise((resolve,reject)=>{
+      reject();
+    })
+  }
+  return User.findOne({
+    '_id': decoded._id,
+    'tokens.token':token,
+    'tokens.access':'auth'
+  })
 };
 var User = mongoose.model('User',UserSchema);
 
