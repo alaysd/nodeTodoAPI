@@ -7,6 +7,7 @@ var authenticate = (req,res,next)=>{
     if(!user){
       return Promise.reject();
     }
+    //we modify the request so we can use it in the request below i.e after next();
     req.user =user;
     req.token = token;
     next();

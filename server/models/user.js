@@ -24,6 +24,7 @@ var UserSchema = new mongoose.Schema({
       require:true,
       minlength:6
     },
+
     tokens:[{
       access:{
         type: String,
@@ -35,23 +36,32 @@ var UserSchema = new mongoose.Schema({
       }
     }]
 
-});
+},{usePushEach: true});
 //Arrow function cannot bind a this keyword
 UserSchema.methods.generateAuthToken = function(){
 
   var user = this;
   var access = 'auth';
-
   var token = jwt.sign({_id: user._id.toHexString(),access},'abc123').toString();
-
-  // user.tokens.push({access,token});
-  User.findOneAndUpdate({email:user.email},{$push: {tokens:{access,token}}},{new:true},function (err, user) {
-    if(err) console.log("Something wrong when updating data");
-    console.log(user);
-  });
+  user.tokens.push({access,token});
+  // User.findOneAndUpdate({email:user.email},{$push: {tokens:{access,token}}},{new:true},function (err, user) {
+  //   if(err) console.log("Something wrong when updating data");
+  //   console.log(user);
+  // });
 
   return user.save().then(()=>{
     return token;
+  });
+};
+
+UserSchema.methods.removeToken = function(token){
+  var user = this;
+  return user.update({
+    $pull:{
+      tokens:{
+        token
+      }
+    }
   });
 };
 
